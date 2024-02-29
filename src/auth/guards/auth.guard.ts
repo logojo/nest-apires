@@ -1,10 +1,14 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Jwtpayload } from '../interfaces';
+import { AuthService } from '../auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
 
-  constructor(private jwtService: JwtService) {}
+  constructor( private jwtService: JwtService,
+               private authService : AuthService
+             ) {}
 
 
   //El context nos da a acceso a toda la peticion que se esta realizando
@@ -17,19 +21,22 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync(
-        token,
-        {
-          secret: process.env.JWT_SEED
-        }
+      const payload = await this.jwtService.verifyAsync<Jwtpayload>(
+        token, 
+        { secret: process.env.JWT_SEED }
       );
 
-      request['user'] = payload;
-    } catch {
-      throw new UnauthorizedException('Token is not valid');
+      const user = await this.authService.findOne( payload.id )
+      if( !user ) throw new UnauthorizedException("User don't exist.")
+      if( !user.isActive ) throw new UnauthorizedException("User isn't active.")
+
+      request['user'] = user;
+
+    } catch(e) {
+      throw new UnauthorizedException(e.response);
     }
    
-    return Promise.resolve(true);
+    return true;
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

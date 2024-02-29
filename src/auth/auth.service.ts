@@ -19,37 +19,9 @@ export class AuthService {
                  private jwtService: JwtService
               ) { }
 
-  async create(CreateUserDto: CreateUserDto) : Promise<User> {
 
-    try {
-      const { password, ...userData } = CreateUserDto;
-
-      //Creando una nueva instancia del modelo User tomando los valores del desestructurados del CreateUserDto( json del backend )
-      const user = new this.userModel(
-        {
-          password: bcryptjs.hashSync( password, 10), //Encriptando contraseña usando paquete bcryptjs
-          ...userData
-        }
-      );
-
-     await user.save(); //guardando
-
-     //Excluyendo el password de la respuesta el _ es para que no choque con la otra variable ya definida
-     const { password:_, ...usuario } = user.toJSON()
-
-     return usuario
-
-    } catch (error) {
-      console.log(error.code);
-      if( error.code === 11000 ){
-        throw new BadRequestException(`${ CreateUserDto.email } was taken`)
-      }
-
-      throw new InternalServerErrorException('Something was wrong!!!')
-    }
-  
-  }
-
+  /* ----- FUNCIONES DEL AUTH ------ */
+    
   //registrarse
   //En esta función se manda llamar la funcion create ya creada pero con diferentes parametros que vienen desde el back
   async signUp(SignUpDto: SignUpDto) : Promise<LoginResponse> {   
@@ -84,12 +56,48 @@ export class AuthService {
     }
   }
 
+/* ----- END FUNCIONES DEL AUTH ------ */
+
+  async create(CreateUserDto: CreateUserDto) : Promise<User> {
+
+    try {
+      const { password, ...userData } = CreateUserDto;
+
+      //Creando una nueva instancia del modelo User tomando los valores del desestructurados del CreateUserDto( json del backend )
+      const user = new this.userModel(
+        {
+          password: bcryptjs.hashSync( password, 10), //Encriptando contraseña usando paquete bcryptjs
+          ...userData
+        }
+      );
+
+     await user.save(); //guardando
+
+     //Excluyendo el password de la respuesta el _ es para que no choque con la otra variable ya definida
+     const { password:_, ...usuario } = user.toJSON()
+
+     return usuario
+
+    } catch (error) {
+      console.log(error.code);
+      if( error.code === 11000 ){
+        throw new BadRequestException(`${ CreateUserDto.email } was taken`)
+      }
+
+      throw new InternalServerErrorException('Something was wrong!!!')
+    }
+  
+  }
+
   findAll() : Promise<User[]> {
    return this.userModel.find()
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  async findOne( id: string ) {
+   const user = await this.userModel.findById( id );
+   const { password:_,  ...usuario } = user.toJSON();
+
+   return usuario
   }
 
   update(id: number, UpdateUserDto: UpdateUserDto) {

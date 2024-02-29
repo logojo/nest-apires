@@ -1,19 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto, UpdateUserDto, LoginDto, SignUpDto } from './dto';
 import { AuthGuard } from './guards/auth.guard';
+import { User } from './entities/user.entity';
+import { LoginResponse } from './interfaces';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-  
 
-  //Las funciones Dto son usadas para recibir los datos en Json del formulario del frontend
-  @Post()
-  create(@Body() CreateUserDto: CreateUserDto) {
-    return this.authService.create(CreateUserDto);
-  }
 
+  /* ----- FUNCIONES DEL AUTH ------ */
 
   //Al crear la funcion automaticamente se crea el endpoint solo hay que pasar como parametro el nombre de la ruta
   //Las rutas del crud se crean automaticamente con la creación de un resourse
@@ -29,8 +26,29 @@ export class AuthController {
   }
 
   @UseGuards( AuthGuard )
+  @Get('/refresh')
+  refresh(@Request() req: Request ) : LoginResponse {
+    const user = req['user'] as User
+
+    return {
+      user,
+      token: this.authService.getJWT({id: user._id, email: user.email})
+    }
+  }
+
+  
+  /* ----- FUNCIONES DEL AUTH ------ */
+  
+
+  //Las funciones Dto son usadas para recibir los datos en Json del formulario del frontend
+  @Post()
+  create(@Body() CreateUserDto: CreateUserDto) {
+    return this.authService.create(CreateUserDto);
+  }
+
+  @UseGuards( AuthGuard )
   @Get()
-  findAll() {
+  findAll(@Request() req: Request) {
     return this.authService.findAll();
   }
 
@@ -38,7 +56,7 @@ export class AuthController {
   @UseGuards( AuthGuard )
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
+    return this.authService.findOne(id);
   }
 
   @Patch(':id')
